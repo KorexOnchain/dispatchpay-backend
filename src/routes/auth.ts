@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
+import { verifyMessage } from 'viem';
 import { prisma } from '../prisma';
 import { randomBytes } from 'crypto';
 import jwt from 'jsonwebtoken';
-import { ethers } from 'ethers';
 
 const router = Router();
 
@@ -26,7 +26,7 @@ router.get('/nonce/:address', async (req: Request, res: Response): Promise<void>
 });
 
 router.post('/verify', async (req: Request, res: Response): Promise<void> => {
-  const { address, signature } = req.body as { address: string; signature: string };
+  const { address, signature } = req.body as { address: string; signature: `0x${string}` };
 
   if (!address || !signature) {
     res.status(400).json({ error: 'Address and signature are required' });
@@ -45,9 +45,14 @@ router.post('/verify', async (req: Request, res: Response): Promise<void> => {
   }
 
   const message = `Sign in to DispatchPay\nNonce: ${record.nonce}`;
-  const recovered = ethers.verifyMessage(message, signature).toLowerCase();
 
-  if (recovered !== normalizedAddress) {
+  const valid = await verifyMessage({
+    address: address as `0x${string}`,
+    message,
+    signature,
+  });
+
+  if (!valid) {
     res.status(401).json({ error: 'Invalid signature' });
     return;
   }
